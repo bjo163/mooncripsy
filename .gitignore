@@ -1,0 +1,17 @@
+node_modules/
+apps/desktop/dist/
+apps/desktop/release/
+.omx/
+.webagent/
+.wtagent/
+coverage/
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+test.md
+.claude/
+review/
+/memo/
+/docs/

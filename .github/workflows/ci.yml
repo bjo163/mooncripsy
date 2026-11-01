@@ -1,0 +1,177 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        node-version:
+          - 20.17.0
+          - 22.13.0
+          - lts/*
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --engine-strict
+
+      - name: Syntax check
+        run: pnpm run check
+
+      - name: Test suite
+        if: runner.os != 'Windows'
+        run: pnpm test
+
+      - name: Test suite
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          pnpm test 2>&1 | Tee-Object -FilePath test-output.log
+          $testExitCode = $LASTEXITCODE
+          if ($testExitCode -ne 0) {
+            $matches = Select-String -Path test-output.log -Pattern '^(not ok|✖)|AssertionError|Error:' -Context 2,25
+            $detailLines = foreach ($match in $matches) {
+              $match.Context.PreContext
+              $match.Line
+              $match.Context.PostContext
+            }
+            if ($detailLines.Count -eq 0) {
+              $detailLines = Get-Content test-output.log -Tail 80
+            }
+            $details = ($detailLines | Select-Object -First 100) -join "`n"
+            $escaped = $details.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            Write-Output "::error title=Windows test failure::$escaped"
+            exit $testExitCode
+          }
+
+      - name: Package dry run
+        run: pnpm --config.ignore-scripts=true pack --dry-run
+
+      - name: Create package tarball
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          pnpm --config.ignore-scripts=true pack
+          $filename = (Get-ChildItem -LiteralPath . -Filter '*.tgz' | Sort-Object LastWriteTime -Descending | Select-Object -First 1).Name
+          "moncripsy_PACKED_TGZ=$filename" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Packed global install smoke
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          node --test test/windows-package-smoke.test.js 2>&1 | Tee-Object -FilePath package-smoke-output.log
+          $smokeExitCode = $LASTEXITCODE
+          if ($smokeExitCode -ne 0) {
+            $details = (Get-Content package-smoke-output.log -Tail 120) -join "`n"
+            $escaped = $details.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            Write-Output "::error title=Windows package smoke failure::$escaped"
+            exit $smokeExitCode
+          }
+        env:
+          moncripsy_PACKED_TGZ: ${{ env.moncripsy_PACKED_TGZ }}
+
+  chatgpt-dom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --engine-strict
+      - name: Install isolated Chromium
+        run: pnpm exec playwright-core install --with-deps chromium
+      - name: Offline browser and media regression tests
+        run: |
+          export WTAGENT_CHROME_PATH="$(node --input-type=module -e 'import { chromium } from "playwright-core"; console.log(chromium.executablePath())')"
+          pnpm run test:chatgpt-dom
+          pnpm run test:media
+
+  desktop-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.13.0
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --engine-strict
+
+      - name: Build Windows installer
+        run: pnpm --filter @moncripsy/desktop dist:win
+
+      - name: Packaged desktop smoke test
+        shell: pwsh
+        run: |
+          $env:MONCRIPSY_DESKTOP_EXECUTABLE = (Resolve-Path "apps\desktop\release\win-unpacked\moncripsy.exe").Path
+          pnpm exec node --test test\desktop-package-smoke.test.js 2>&1 | Tee-Object -FilePath desktop-smoke-output.log
+          $smokeExitCode = $LASTEXITCODE
+          if ($smokeExitCode -ne 0) {
+            $details = (Get-Content desktop-smoke-output.log -Tail 120) -join "`n"
+            $escaped = $details.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            Write-Output "::error title=Packaged desktop smoke failure::$escaped"
+            exit $smokeExitCode
+          }
+
+      - name: Installer install and uninstall smoke test
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem -LiteralPath "apps\desktop\release" -Filter "moncripsy-*-win-x64.exe" | Select-Object -First 1
+          if (-not $installer) {
+            throw "Windows NSIS installer was not produced."
+          }
+          $env:MONCRIPSY_DESKTOP_INSTALLER = $installer.FullName
+          pnpm exec node --test test\desktop-installer-smoke.test.js 2>&1 | Tee-Object -FilePath desktop-installer-smoke-output.log
+          $smokeExitCode = $LASTEXITCODE
+          if ($smokeExitCode -ne 0) {
+            $details = (Get-Content desktop-installer-smoke-output.log -Tail 120) -join "`n"
+            $escaped = $details.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            Write-Output "::error title=Desktop installer smoke failure::$escaped"
+            exit $smokeExitCode
+          }
+
+      - name: Upload unsigned Windows installer artifact
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: moncripsy-desktop-windows-unsigned
+          path: apps/desktop/release/moncripsy-*-win-x64.exe
+          if-no-files-found: error
+          retention-days: 30
