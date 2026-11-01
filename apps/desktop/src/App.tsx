@@ -247,6 +247,7 @@ function ProjectsPage() {
       <div className="project-workbench">
         <section className="project-rail panel">
           <div className="workbench-section-heading">
+            <span className="module-id" aria-hidden="true">A / 01</span>
             <div>
               <h2>Recent projects</h2>
             </div>
@@ -269,6 +270,7 @@ function ProjectsPage() {
         </section>
         <section className="project-rail panel">
           <div className="workbench-section-heading">
+            <span className="module-id" aria-hidden="true">B / 02</span>
             <div>
               <h2>Recent sessions</h2>
             </div>
