@@ -7,6 +7,20 @@ import os from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
+async function waitForExit(exitPromise, message) {
+  let timeout;
+  try {
+    await Promise.race([
+      exitPromise,
+      new Promise((_, reject) => {
+        timeout = setTimeout(() => reject(new Error(message)), 10_000);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 const installerPath = process.env.MONCRIPSY_DESKTOP_INSTALLER;
 
 test("Windows installer installs, launches, and uninstalls without deleting app data", {
@@ -19,12 +33,14 @@ test("Windows installer installs, launches, and uninstalls without deleting app 
   await fs.mkdir(appHome);
   await fs.writeFile(sentinelPath, "user data must survive uninstall\n");
   let desktopProcess;
+  let desktopExited = false;
+  let desktopExit;
 
   t.after(async () => {
     try {
-      if (desktopProcess && desktopProcess.exitCode === null) {
+      if (desktopProcess && !desktopExited) {
         desktopProcess.kill();
-        await once(desktopProcess, "exit");
+        await waitForExit(desktopExit, "Installed desktop process did not exit during cleanup.");
       }
       const uninstaller = path.join(installDir, "Uninstall moncripsy.exe");
       try {
@@ -52,6 +68,12 @@ test("Windows installer installs, launches, and uninstalls without deleting app 
     stdio: "ignore",
     windowsHide: true,
   });
+  desktopExit = new Promise((resolve) => {
+    desktopProcess.once("exit", (...args) => {
+      desktopExited = true;
+      resolve(args);
+    });
+  });
   await Promise.race([
     once(desktopProcess, "spawn"),
     once(desktopProcess, "error").then(([error]) => Promise.reject(error)),
@@ -71,8 +93,10 @@ test("Windows installer installs, launches, and uninstalls without deleting app 
     }
   }
   await fs.access(accountFile);
-  desktopProcess.kill();
-  await once(desktopProcess, "exit");
+  if (!desktopExited) {
+    desktopProcess.kill();
+  }
+  await waitForExit(desktopExit, "Installed desktop process did not exit after being stopped.");
 
   const uninstallerPath = path.join(installDir, "Uninstall moncripsy.exe");
   await fs.access(uninstallerPath);
@@ -81,7 +105,22 @@ test("Windows installer installs, launches, and uninstalls without deleting app 
     windowsHide: true,
   });
 
-  await assert.rejects(fs.access(appExecutable), { code: "ENOENT" });
+  let appRemoved = false;
+  const uninstallDeadline = Date.now() + 15_000;
+  while (Date.now() < uninstallDeadline) {
+    try {
+      await fs.access(appExecutable);
+      await delay(250);
+    } catch (error) {
+      if (error.code === "ENOENT") {
+        appRemoved = true;
+        break;
+      }
+      if (error.code !== "EPERM") throw error;
+      await delay(250);
+    }
+  }
+  assert.equal(appRemoved, true, "Uninstaller left the installed application executable behind.");
   assert.equal(await fs.readFile(sentinelPath, "utf8"), "user data must survive uninstall\n");
   assert.ok(await fs.readFile(accountFile, "utf8"));
 });

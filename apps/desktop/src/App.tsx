@@ -81,12 +81,10 @@ function errorMessage(error: unknown): string {
 }
 
 function PageHeading({
-  eyebrow,
   title,
   description,
   children,
 }: {
-  eyebrow?: string;
   title: string;
   description: string;
   children?: ReactNode;
@@ -94,7 +92,6 @@ function PageHeading({
   return (
     <div className="page-heading">
       <div>
-        {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
         <h1>{title}</h1>
         <p>{description}</p>
       </div>
@@ -143,8 +140,11 @@ function AppLayout({ children }: { children: ReactNode }) {
     <div className="app-shell">
       <aside className="sidebar">
         <Link className="brand" to="/projects" aria-label="moncripsy home">
-          <span className="brand-mark">W</span>
-          <span>moncripsy</span>
+          <span className="brand-mark"><Sparkles size={17} aria-hidden="true" /></span>
+          <span className="brand-copy">
+            <strong>moncripsy</strong>
+            <small>DESKTOP WORKSPACE</small>
+          </span>
         </Link>
         <nav className="nav-links" aria-label="Main navigation">
           {navItems.map(({ to, label, icon: Icon }) => (
@@ -241,7 +241,6 @@ function ProjectsPage() {
   return (
     <>
       <PageHeading
-        eyebrow="Local coding agent"
         title="Start a task"
         description="Choose a project and the web account moncripsy should use for this conversation."
       />
@@ -249,7 +248,6 @@ function ProjectsPage() {
         <section className="project-rail panel">
           <div className="workbench-section-heading">
             <div>
-              <p className="eyebrow">Workspace</p>
               <h2>Recent projects</h2>
             </div>
             <span>{recentProjects.length}</span>
@@ -272,7 +270,6 @@ function ProjectsPage() {
         <section className="project-rail panel">
           <div className="workbench-section-heading">
             <div>
-              <p className="eyebrow">Continue</p>
               <h2>Recent sessions</h2>
             </div>
             <Link to="/sessions">View all</Link>
@@ -440,7 +437,6 @@ function AccountsPage() {
   return (
     <>
       <PageHeading
-        eyebrow="Browser profiles"
         title="Provider accounts"
         description="Keep logins isolated and choose the account explicitly when starting a session."
       />
@@ -592,7 +588,6 @@ function SessionsPage() {
   return (
     <>
       <PageHeading
-        eyebrow="History"
         title="Session workbench"
         description="Find a conversation by task, project, provider, or recovery state."
       >
@@ -1019,7 +1014,6 @@ function SessionPage() {
     <div className="chat-layout">
       <header className="chat-header">
         <div>
-          <p className="eyebrow">Conversation</p>
           <h1>{data.session.task}</h1>
           <p className="muted">{data.session.projectRoot} · {account?.label ?? data.session.provider}</p>
         </div>
@@ -1155,7 +1149,6 @@ function SettingsPage() {
   return (
     <>
       <PageHeading
-        eyebrow="Local setup"
         title="Settings"
         description="Desktop application and local data information."
       />
