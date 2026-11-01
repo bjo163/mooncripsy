@@ -17,7 +17,7 @@ This is an early gateway foundation, not yet the complete smart router. Model al
 
 ## Start
 
-Use Node.js 20.19+.
+Use Node.js 22.13+.
 
 Set a random client key (this is the key tools use to call Mooncripsy):
 
