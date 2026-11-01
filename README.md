@@ -1,17 +1,36 @@
-# moncripsy
+# Mooncripsy
 
-Turn ChatGPT Web (including Pro) into Codex.
-Turn Claude Web into Claude Code.
+Local-first multi-provider AI gateway and smart router, with a separate browser-agent workspace.
 
-Also DeepSeek, Gemini, Grok, Kimi, GLM.
+Mooncripsy has two deliberately separate runtimes:
 
-No API key. No MCP. No tunnel. No plugin.
+- **AI Gateway** — one local OpenAI-compatible API endpoint for configured provider APIs, OpenAI-compatible upstreams, and local AI runtimes. The gateway owns model routing and fallback.
+- **Browser Workspace** — the existing Playwright/CDP coding-agent workflow that operates user-signed-in web profiles. Browser profiles remain separate from API connections and are not converted into generic API credentials.
 
-https://xixian42.github.io/moncripsy/
+The gateway does not require Chrome or Electron to run. The Browser Workspace continues to require Chrome/Chromium.
+
+## AI Gateway (MVP)
+
+The first gateway implementation is experimental and currently provides:
+
+- `GET /healthz`
+- `GET /v1/models`
+- `POST /v1/chat/completions` with streaming pass-through
+- Multiple configured OpenAI-compatible upstream connections
+- Priority ordering and bounded fallback for retryable upstream failures
+- Separate Mooncripsy client key and upstream credentials
+
+Start with `pnpm gateway`. Configure the client key and one or more upstream connections using environment variables. See **[Gateway setup and API guide](docs/gateway.md)** for full configuration and examples for OpenAI-compatible APIs, Ollama, and LM Studio.
+
+The gateway is being built API-first. The desktop app will become its local control plane after the HTTP contract stabilizes.
+
+## Browser Workspace (existing)
+
+The Playwright/CDP browser-agent workspace is retained as a separate mode. Its saved Chrome profiles, website logins, agent sessions, recovery, local tools, and approvals remain independent from the gateway. It does not expose web subscriptions as generic API access and is not part of gateway fallback.
 
 [中文](#中文)
 
-## Quick start
+## Browser Workspace quick start
 
 Requires Node.js 20.x ≥20.17, 22.x ≥22.13, or ≥23.5, and Chrome/Chromium. moncripsy supports macOS, Linux, native Windows, and preview support for WSL2 with WSLg. WSL1 and external X11 configurations are best effort.
 
