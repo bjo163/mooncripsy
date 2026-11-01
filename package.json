@@ -1,7 +1,7 @@
 {
   "name": "moncripsy",
   "version": "1.0.2",
-  "description": "Turn ChatGPT Web (including Pro) into Codex. Turn Claude Web into Claude Code. Also DeepSeek, Gemini, Grok, Kimi, GLM. No API key, no MCP, no tunnel, no plugin.",
+  "description": "Local-first multi-provider AI gateway and smart router with a separate browser-agent workspace.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/XiXian42/moncripsy.git"
@@ -26,12 +26,18 @@
     "chatgpt",
     "cli",
     "local-tools",
-    "browser"
+    "browser",
+    "ai-router",
+    "llm-gateway",
+    "multi-provider",
+    "openai-compatible",
+    "local-ai"
   ],
   "files": [
     "src",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "docs"
   ],
   "scripts": {
     "test": "node scripts/run-tests.js",
@@ -46,7 +52,9 @@
     "release:alpha": "pnpm publish --tag alpha",
     "test:chatgpt-dom": "node scripts/test-chatgpt-dom.js",
     "test:media": "node scripts/test-media.js",
-    "desktop": "pnpm --filter @moncripsy/desktop start"
+    "desktop": "pnpm --filter @moncripsy/desktop start",
+    "gateway": "node src/gateway/main.js",
+    "test:gateway": "node --test test/gateway.test.js"
   },
   "engines": {
     "node": "^20.17.0 || ^22.13.0 || >=23.5.0"
