@@ -57,7 +57,7 @@
     "test:gateway": "node --test test/gateway.test.js"
   },
   "engines": {
-    "node": "^20.17.0 || ^22.13.0 || >=23.5.0"
+    "node": "^20.19.0 || ^22.13.0 || >=23.5.0"
   },
   "license": "MIT",
   "publishConfig": {
