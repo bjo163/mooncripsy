@@ -32,7 +32,7 @@ The Playwright/CDP browser-agent workspace is retained as a separate mode. Its s
 
 ## Browser Workspace quick start
 
-Requires Node.js 20.x ≥20.19, 22.x ≥22.13, or ≥23.5, and Chrome/Chromium. moncripsy supports macOS, Linux, native Windows, and preview support for WSL2 with WSLg. WSL1 and external X11 configurations are best effort.
+Requires Node.js 22.x ≥22.13, or ≥23.5, and Chrome/Chromium. moncripsy supports macOS, Linux, native Windows, and preview support for WSL2 with WSLg. WSL1 and external X11 configurations are best effort.
 
 On WSL, install the Linux Chrome/Chromium package inside the distribution and launch moncripsy from WSL. moncripsy keeps file and command execution in the WSL environment and connects to that Linux browser over local CDP. Display environment variables are only configuration hints; actual GUI availability is confirmed when Chrome starts. Windows-host Chrome is not supported from WSL yet.
 
